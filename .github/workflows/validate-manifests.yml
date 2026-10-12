@@ -1,0 +1,56 @@
+# Validates every Scoop manifest in bucket/ using Scoop's official bucket test
+# suite (JSON Schema validation against Scoop's schema.json, plus file style
+# checks). Manifests are parsed and validated only; nothing is downloaded or
+# installed, and no manifest scripts are executed.
+name: Validate manifests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate (${{ matrix.shell }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Scoop supports both Windows PowerShell 5.1 and PowerShell 7+.
+        shell: [powershell, pwsh]
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
+    steps:
+      - name: Check out bucket
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: my_bucket
+          persist-credentials: false
+
+      - name: Check out Scoop test suite
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ScoopInstaller/Scoop
+          # Scoop v0.6.0. Bump deliberately to pick up schema and test changes.
+          ref: e6aa3b366bdee8ed138c1e0f7b85192ebdd35d0f
+          path: scoop_core
+          persist-credentials: false
+
+      - name: Install test dependencies
+        run: |
+          Install-Module -Name Pester -MinimumVersion 5.2.0 -MaximumVersion 5.99 -Scope CurrentUser -Force -SkipPublisherCheck
+          Install-Module -Name BuildHelpers -MinimumVersion 2.0.1 -Scope CurrentUser -Force
+
+      - name: Validate manifests
+        run: |
+          $env:SCOOP_HOME = Convert-Path '.\scoop_core'
+          # With CI=true, Scoop's harness validates only manifests changed in
+          # the last commit. Validate every manifest instead.
+          $env:CI = 'false'
+          .\my_bucket\bin\test.ps1

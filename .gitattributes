@@ -1,0 +1,4 @@
+# Scoop is Windows-only, so text files use CRLF line endings in the working tree.
+# Scoop's bucket test suite enforces CRLF for all non-YAML text files.
+# Git still stores LF line endings in the repository itself.
+* text=auto eol=crlf
