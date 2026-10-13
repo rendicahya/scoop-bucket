@@ -6,7 +6,11 @@ The bucket can host several independently maintained applications. Each applicat
 
 ## Available applications
 
-Every application in this bucket has a manifest file in the [`bucket/`](bucket/) directory, named `<app-name>.json`. If `bucket/` contains no manifests, no applications are available yet.
+| Application | Description | Manifest |
+| --- | --- | --- |
+| [resik](https://github.com/rendicahya/resik) | Analyze and reclaim disk space from Windows and developer-tool caches. | [`resik.json`](bucket/resik.json) |
+
+Every application in this bucket has a manifest file in the [`bucket/`](bucket/) directory, named `<app-name>.json`. The manifest is the source of truth for the current version; run `scoop info personal/<app-name>` to see it.
 
 You can only install an application after its valid manifest has been added to this bucket. Seeing an application's source repository on GitHub doesn't mean you can install it through Scoop.
 
@@ -15,6 +19,13 @@ You can only install an application after its valid manifest has been added to t
 - Windows 10 or Windows 11
 - Scoop installed ([installation instructions](https://scoop.sh))
 - Git, which Scoop uses to clone buckets (`scoop install git`)
+
+## Quick start
+
+```powershell
+scoop bucket add personal https://github.com/rendicahya/scoop-bucket
+scoop install personal/resik
+```
 
 ## Usage
 
