@@ -97,15 +97,15 @@ Do not imply that any particular application is already available unless its man
 
 ### 4. Create CONTRIBUTING.md
 
-Document a straightforward GitHub Flow for maintaining this bucket:
+Document a simple workflow of committing directly to `main` (no feature branches or pull requests):
 
-1. Create a feature branch.
+1. Start from an up-to-date `main`.
 2. Add or update a manifest in `bucket/`.
 3. Validate the JSON and Scoop manifest conventions.
 4. Verify that release URLs are accessible and SHA-256 hashes match the actual artifacts.
 5. Test installation, execution, updating, and uninstallation when feasible.
-6. Open a pull request.
-7. Review the changes and ensure validation passes before merging.
+6. Review the diff, then commit and push directly to `main`.
+7. Ensure the validation workflow passes for the pushed commit.
 
 Document the following manifest conventions:
 

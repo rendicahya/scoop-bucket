@@ -16,21 +16,20 @@ Official Scoop references:
 - Each manifest must reference a real, publicly accessible upstream release artifact.
 - SHA-256 hashes must be checked against the artifact they describe.
 - Each application has one manifest. Don't duplicate manifests.
-- Don't commit application binaries to this repository. If a binary ever needs to be hosted here, document the reason in the pull request and in the manifest's `##` comment.
+- Don't commit application binaries to this repository. If a binary ever needs to be hosted here, document the reason in the commit message and in the manifest's `##` comment.
 - Manifests must not install or uninstall destructively. Don't delete user data, change unrelated system settings, or touch files outside the application's own directory without a documented reason.
 - Keep manifests straightforward and easy to maintain.
 - Don't add placeholder manifests for applications that might exist in the future. Add a manifest only after the application has a published release artifact.
 
 ## Workflow
 
-This repository uses [GitHub Flow](https://docs.github.com/en/get-started/using-github/github-flow). Never push manifest changes straight to `main`.
+This repository uses a simple workflow: the maintainer commits directly to `main`, without feature branches or pull requests.
 
-1. **Create a feature branch.**
+1. **Start from an up-to-date `main`.**
 
    ```powershell
    git switch main
    git pull
-   git switch -c add-<app-name>     # or: update-<app-name>-<version>
    ```
 
 2. **Add or update a manifest in `bucket/`.** Create or edit `bucket/<app-name>.json` following the [manifest conventions](#manifest-conventions) below.
@@ -41,13 +40,18 @@ This repository uses [GitHub Flow](https://docs.github.com/en/get-started/using-
 
 5. **Test installation, execution, updating, and uninstallation, when feasible.** See [Installation testing](#5-installation-testing).
 
-6. **Open a pull request.** Push the branch and open a pull request against `main`. In the description, link to the upstream release, mention any unusual installation behavior, and list what you tested.
+6. **Commit and push to `main`.** Review the diff first. In the commit message, name the application and version (for example, `Add resik 0.1.0` or `Update resik to 0.2.0`), and mention any unusual installation behavior.
 
    ```powershell
-   git push -u origin add-<app-name>
+   git diff
+   git add bucket/<app-name>.json
+   git commit -m "Add <app-name> <version>"
+   git push
    ```
 
-7. **Review and merge.** Review the diff and confirm that the **Validate manifests** workflow passes. Only merge after both. After merging, delete the feature branch.
+7. **Check CI.** Confirm that the **Validate manifests** workflow passes for the pushed commit. If it fails, fix the manifest in a follow-up commit.
+
+External contributors who can't push to `main` can open a pull request instead; the same checks apply.
 
 ## Manifest conventions
 
@@ -67,7 +71,7 @@ This repository uses [GitHub Flow](https://docs.github.com/en/get-started/using-
   - `checkver` and `autoupdate`: recommended so that `bin\checkver.ps1` can detect new upstream releases
 - **Avoid unnecessary installer scripts and side effects.** Prefer declarative properties (`bin`, `shortcuts`, `persist`, `extract_dir`, `env_add_path`) over `pre_install`, `installer`, `post_install`, or `uninstaller` scripts.
 - **Never include credentials, tokens, or private URLs.** Every URL must be publicly downloadable without authentication.
-- **Document unusual installation or uninstallation behavior.** Put user-facing information in `notes`, explain maintainer-facing reasoning in a `##` comment, and mention it in the pull request.
+- **Document unusual installation or uninstallation behavior.** Put user-facing information in `notes`, explain maintainer-facing reasoning in a `##` comment, and mention it in the commit message.
 - **Formatting:** UTF-8 without a byte order mark (BOM), CRLF line endings, 4-space indentation, no trailing whitespace, and a final newline. `.editorconfig` and `.gitattributes` handle most of this, and the test suite enforces it. Running `.\bin\formatjson.ps1` applies Scoop's canonical JSON formatting.
 
 ### Manifest skeleton
@@ -108,7 +112,7 @@ The structure below is a common one for an application released as a ZIP on GitH
 
 ## Local validation on Windows
 
-Validation tooling is optional on your machine. The repository works without it, and CI runs the full schema validation on every pull request. Running the checks locally catches problems sooner.
+Validation tooling is optional on your machine. The repository works without it, and CI runs the full schema validation on every push to `main`. Running the checks locally catches problems sooner.
 
 All commands below run in PowerShell from the repository root.
 
@@ -189,11 +193,11 @@ scoop install .\bucket\<app-name>.json   # Install straight from the local manif
 scoop uninstall <app-name>               # Confirm uninstallation is clean
 ```
 
-To test updating, install the previous version (for example, `scoop install personal/<app-name>` before your change is merged). After merging, run `scoop update` followed by `scoop update <app-name>`. Also check that any `persist` data survives the update.
+To test updating, install the previous version (for example, `scoop install personal/<app-name>` before you push your change). After pushing, run `scoop update` followed by `scoop update <app-name>`. Also check that any `persist` data survives the update.
 
 ## Continuous integration
 
-The [`.github/workflows/validate-manifests.yml`](.github/workflows/validate-manifests.yml) workflow runs on every pull request, on pushes to `main`, and on demand. It runs on `windows-latest` under both Windows PowerShell 5.1 and PowerShell 7, and does the following:
+The [`.github/workflows/validate-manifests.yml`](.github/workflows/validate-manifests.yml) workflow runs on pushes to `main`, on pull requests, and on demand. It runs on `windows-latest` under both Windows PowerShell 5.1 and PowerShell 7, and does the following:
 
 1. Checks out this repository and Scoop's source at a pinned release commit.
 2. Installs Pester 5 and BuildHelpers from the PowerShell Gallery.
@@ -203,7 +207,7 @@ The workflow has read-only repository permissions, needs no secrets, and doesn't
 
 **Limitations:**
 
-- CI doesn't download artifacts, check URLs, verify hashes, or install applications. This is deliberate, so that CI never runs installer scripts from manifests. Run steps 3 to 5 of the local validation above before opening a pull request.
+- CI doesn't download artifacts, check URLs, verify hashes, or install applications. This is deliberate, so that CI never runs installer scripts from manifests. Run steps 3 to 5 of the local validation above before pushing.
 - Schema validation checks structure, not correctness. For example, it can't tell whether `version` matches the release that `url` points to.
 - Scoop's validator uses Newtonsoft.Json.Schema, which allows 1,000 free schema validations per hour. If that limit is reached, the affected tests are reported as **skipped**, not failed. Check the test output if you see skipped tests.
 
