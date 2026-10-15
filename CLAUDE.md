@@ -1,199 +1,60 @@
-# Task: Set Up My Personal Scoop Bucket
+# CLAUDE.md - personal Scoop bucket
 
-You are working inside my existing local Git repository for a personal Scoop bucket.
+This repository is the `personal` Scoop bucket of `rendicahya`
+(<https://github.com/rendicahya/scoop-bucket>). It holds Scoop manifests and
+their documentation only. Each application keeps its source, releases, and
+release notes in its own repository.
 
-## Project Information
+Read `CONTRIBUTING.md` for the full policies, manifest conventions, and
+validation steps. This file is the short version for maintenance work.
 
-- GitHub username: `rendicahya`
-- Repository name: `scoop-bucket`
-- Repository URL: `https://github.com/rendicahya/scoop-bucket`
-- Bucket name used by consumers: `personal`
-- Purpose: Distribute multiple Windows applications through Scoop.
-- Target platform: Windows 10 and Windows 11.
-- Package manager: Scoop.
+## Layout
 
-Each application will have its own source-code repository and release process. This repository is exclusively for Scoop manifests and bucket-maintenance documentation.
+- `bucket/<app>.json`: one manifest per application. Currently only
+  `resik.json` (<https://github.com/rendicahya/resik>).
+- `bin/`: thin wrappers around Scoop's maintenance scripts (`test.ps1`,
+  `checkver.ps1`, `checkurls.ps1`, `checkhashes.ps1`, `formatjson.ps1`).
+- `Scoop-Bucket.Tests.ps1`: loads Scoop's bucket test suite.
+- `.github/workflows/validate-manifests.yml`: runs that suite on Windows
+  PowerShell 5.1 and PowerShell 7. Actions and Scoop are pinned to commit SHAs.
 
-## Objectives
+## Rules
 
-Set up a clean, maintainable, standards-compliant personal Scoop bucket that can host multiple applications in the future.
+- Never invent a URL, version, or hash. A manifest's `hash` is the SHA-256 of
+  the asset downloaded from the published release, never of a local build
+  (zip archives embed timestamps, so rebuilds differ).
+- `version` must match the release that `url` points to.
+- Every file must be UTF-8 without BOM, CRLF line endings, 4-space indentation
+  (2 for YAML), no trailing whitespace, and a final newline. The test suite
+  checks every file in the repository, not only manifests.
+- Manifests stay declarative (`bin`, `persist`, `checkver`, `autoupdate`); no
+  installer scripts that delete user data or touch files outside the app.
+- Do not add manifests for applications without a published release.
 
-### 1. Inspect the existing repository
+## Updating a manifest after an upstream release
 
-Before making changes:
+1. Confirm the release exists and download its asset into an empty folder:
+   `gh release download v<version> -R rendicahya/<app> --pattern '<asset>' --dir <dir>`.
+2. Set `version`, `url`, and `hash` (`(Get-FileHash <file> -Algorithm SHA256).Hash.ToLower()`).
+   `.\bin\checkver.ps1 <app> -Update` can do this through `autoupdate`; still
+   compare its hash with the downloaded asset.
+3. Check: `.\bin\checkver.ps1 <app>` (reports the new version) and
+   `.\bin\checkurls.ps1 <app>`.
+4. Test the install. Resik is usually installed on this machine from the
+   bucket, so uninstall it first and reinstall from the bucket afterwards:
+   `scoop uninstall <app>`, `scoop install .\bucket\<app>.json`, run the app
+   (for Resik: `resik --version`, `resik.cmd --version`, and a `--dry-run`),
+   then `scoop uninstall <app>`.
+5. Commit with the message `<app>: Update to version <version>` (the style
+   used in the history), push, and check that the "Validate manifests"
+   workflow passes for the pushed commit.
+6. Reinstall from the bucket: `scoop update`, then
+   `scoop install rendicahya_scoop-bucket/<app>` (this machine registers the
+   bucket under that name; users add it as `personal`).
 
-- Inspect the current directory, files, and Git status.
-- Read existing documentation and configuration.
-- Preserve existing user work.
-- Do not overwrite or delete files unnecessarily.
-- Do not initialize another Git repository.
-- Do not commit or push changes automatically.
+## Git workflow
 
-### 2. Create the repository structure
-
-Use the following structure where appropriate:
-
-    scoop-bucket/
-    ├── bucket/
-    │   └── .gitkeep
-    ├── .github/
-    │   └── workflows/
-    │       └── validate-manifests.yml
-    ├── .gitignore
-    ├── README.md
-    ├── CONTRIBUTING.md
-    └── LICENSE
-
-Adapt the structure if appropriate files already exist.
-
-The `bucket/` directory must contain Scoop manifests in JSON format, with one manifest per application.
-
-Do not create fake application manifests, placeholder download URLs, invented hashes, or manifests for applications that do not have verified release artifacts.
-
-### 3. Create README.md
-
-Write a polished, clear README in English.
-
-Explain:
-
-- The purpose of this personal Scoop bucket.
-- That it is maintained by `rendicahya`.
-- That it can distribute multiple independently maintained Windows applications.
-- How to add the bucket to Scoop.
-- How to search for, install, and update applications.
-- How to list configured buckets.
-- How manifests relate to upstream application repositories and releases.
-- How users can report issues or contribute.
-
-Include these commands:
-
-Add the bucket:
-
-    scoop bucket add personal https://github.com/rendicahya/scoop-bucket
-
-List configured buckets:
-
-    scoop bucket list
-
-Search for an application:
-
-    scoop search <app-name>
-
-Install an application:
-
-    scoop install <app-name>
-
-Update Scoop and bucket metadata:
-
-    scoop update
-
-Update an installed application:
-
-    scoop update <app-name>
-
-Explain that an application can only be installed after its valid manifest has been added to the bucket.
-
-Do not imply that any particular application is already available unless its manifest actually exists.
-
-### 4. Create CONTRIBUTING.md
-
-Document a simple workflow of committing directly to `main` (no feature branches or pull requests):
-
-1. Start from an up-to-date `main`.
-2. Add or update a manifest in `bucket/`.
-3. Validate the JSON and Scoop manifest conventions.
-4. Verify that release URLs are accessible and SHA-256 hashes match the actual artifacts.
-5. Test installation, execution, updating, and uninstallation when feasible.
-6. Review the diff, then commit and push directly to `main`.
-7. Ensure the validation workflow passes for the pushed commit.
-
-Document the following manifest conventions:
-
-- One manifest per application.
-- Use lowercase manifest filenames where practical.
-- Follow official Scoop manifest conventions.
-- Keep version numbers synchronized with upstream releases.
-- Use actual, accessible release URLs.
-- Use verified SHA-256 hashes.
-- Include suitable metadata such as description, homepage, license, architecture, and persistence settings when applicable.
-- Avoid unnecessary installer scripts and side effects.
-- Never include credentials, tokens, or private URLs.
-- Document unusual installation or uninstallation behavior.
-
-### 5. Add GitHub Actions for validation
-
-Create `.github/workflows/validate-manifests.yml`.
-
-Requirements:
-
-- Run on pull requests and pushes to the default branch.
-- Validate every `*.json` manifest under `bucket/`.
-- Fail when a manifest contains malformed JSON.
-- Where practical, use established tooling to validate Scoop-specific manifest conventions.
-- Prefer official Scoop documentation and maintained validation tools.
-- Pin third-party GitHub Actions to reviewed versions or full commit SHAs where appropriate.
-- Apply least-privilege workflow permissions.
-- Do not require secrets or personal access tokens for ordinary validation.
-- Do not execute arbitrary installation scripts from manifests as part of validation.
-- Report limitations honestly if full Scoop-specific validation cannot run in the selected environment.
-
-Keep the workflow simple, reliable, and maintainable. Do not introduce an elaborate CI/CD framework.
-
-### 6. Document local validation on Windows
-
-Explain how to validate manifests locally on Windows.
-
-Prefer official Scoop tooling or a maintained validation utility. Verify the current documentation before selecting commands.
-
-If a development-only tool is needed, document how to install and run it. Do not add Python, Node.js, or another runtime dependency merely for basic JSON validation.
-
-The repository must remain usable even when optional validation tooling is unavailable locally.
-
-### 7. Repository and manifest policies
-
-Establish these policies:
-
-- This repository contains Scoop manifests and bucket documentation, not application source code.
-- Each application maintains its own source repository and release process.
-- Each manifest must reference a real upstream release artifact.
-- SHA-256 hashes must be verified against the corresponding artifact.
-- Do not duplicate manifests unnecessarily.
-- Do not include application binaries directly in the bucket repository unless there is a compelling, documented reason.
-- Avoid destructive installation or uninstallation behavior.
-- Keep manifests straightforward and maintainable.
-- Do not add placeholder manifests for hypothetical future applications.
-
-### 8. Official documentation
-
-Use official Scoop documentation as the primary reference:
-
-- Scoop repository: https://github.com/ScoopInstaller/Scoop
-- App Manifests: https://github.com/ScoopInstaller/Scoop/wiki/App-Manifests
-- Buckets: https://github.com/ScoopInstaller/Scoop/wiki/Buckets
-- Creating an App Manifest: https://github.com/ScoopInstaller/Scoop/wiki/Creating-an-app-manifest
-
-Verify the references and follow current documented conventions.
-
-### 9. Quality requirements
-
-- Keep the repository minimal and easy to maintain.
-- Prefer clear documentation over unnecessary abstraction.
-- Do not implement any applications in this repository.
-- Do not create a manifest generator unless there is a compelling reason.
-- Do not create application release workflows; upstream application repositories own their releases.
-- Preserve existing files and changes.
-- Do not commit or push automatically.
-- Do not modify GitHub repository settings.
-- Never claim a check passed unless it was actually executed and its result inspected.
-
-### 10. Execution process
-
-Work directly in the current repository.
-
-1. Inspect the repository and briefly summarize the findings.
-2. Implement the setup.
-3. Run available local validation and checks.
-4. Review the final Git diff for accidental changes, incorrect instructions, and invalid configuration.
-5. Summarize the files created or modified, validation results, and remaining manual steps.
-
-Proceed with implementation rather than stopping after proposing a plan. Ask me only if an essential ambiguity cannot be resolved safely from the repository or official documentation.
+Commit directly to `main`; there are no feature branches or pull requests.
+Ask for explicit approval before every commit and push. Never force-push or
+rewrite history without explicit authorization, and never claim a check passed
+unless it ran and its output was read.
