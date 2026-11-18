@@ -1,10 +1,10 @@
 {
-    "version": "0.13.0",
+    "version": "0.13.1",
     "description": "Analyze and reclaim disk space from Windows and developer-tool caches.",
     "homepage": "https://github.com/rendicahya/resik",
     "license": "MIT",
-    "url": "https://github.com/rendicahya/resik/releases/download/v0.13.0/resik-0.13.0.zip",
-    "hash": "c1637beb21f053371bcf19f284114ebc837721915cdaebcc78471e9417824d87",
+    "url": "https://github.com/rendicahya/resik/releases/download/v0.13.1/resik-0.13.1.zip",
+    "hash": "e3fdb1c4b2650e08906556025609bbfdb986be9f790f0821852bc338a6fd0ddd",
     "bin": [
         [
             "Resik.ps1",
